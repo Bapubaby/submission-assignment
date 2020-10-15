@@ -1,14 +1,22 @@
-import { takeLatest } from 'redux-saga/effects';
-import NavigationService from 'app/services/NavigationService';
-import { rootScreenTypes } from './reducer';
+import { takeLatest, put, call } from 'redux-saga/effects';
+import { rootScreenTypes, rootScreenActions } from './reducer';
+import { fetchBankData } from '../../services/UserService';
 
-/**
- * The startup saga is the place to define behavior to execute when the application starts.
- */
-export function* startup() {
-  setTimeout(() => NavigationService.navigateAndReset('MainScreen'), 1000);
+export function* fetchData(query) {
+  // console.log(query.query)
+  const response = yield call(fetchBankData, query.query);
+  // console.log(`response :  ${response}`)
+  if (response.status === 200) {
+    yield put(rootScreenActions.successFetchData(response.data));
+  } else {
+    yield put(
+      rootScreenActions.failureFetchData(
+        'IFSC Code wrong or Server not Responding'
+      )
+    );
+  }
 }
 
-export default function* startUpSaga() {
-  yield takeLatest(rootScreenTypes.STARTUP, startup);
+export default function* startupSaga() {
+  yield takeLatest(rootScreenTypes.REQUEST_FETCH_DATA, fetchData);
 }

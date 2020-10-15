@@ -4,42 +4,53 @@
 
 /* eslint-disable redux-saga/yield-effects */
 
-import { takeLatest } from 'redux-saga/effects';
-import NavigationService from 'app/services/NavigationService';
-import { timeout } from 'app/utils/testUtils';
-import rootScreenSaga, { startup } from '../saga';
+import { takeLatest, call, put } from 'redux-saga/effects';
+import { fetchBankData } from 'app/services/UserService';
+import { apiResponseGenerator } from '../../../utils/testUtils';
+import rootScreenSaga, { fetchData } from '../saga';
 import { rootScreenTypes } from '../reducer';
 
-describe('Tests for RootScreen sagas', () => {
-  let generator;
-  let submitSpy;
+describe('Tests for the sagas used in the RootScreen', () => {
+  const generator = rootScreenSaga();
 
-  beforeEach(() => {
-    generator = rootScreenSaga();
-    submitSpy = jest.fn();
-  });
-
-  it('should start task to watch for STARTUP action', () => {
+  it('should start task to watch for REQUEST_FETCH_DATA action', () => {
     expect(generator.next().value).toEqual(
-      takeLatest(rootScreenTypes.STARTUP, startup)
+      takeLatest(rootScreenTypes.REQUEST_FETCH_USER, fetchData)
     );
   });
 
-  it('should ensure that the navigation service is called after waiting for 1000ms', async () => {
-    const method = startup();
-    NavigationService.navigateAndReset = submitSpy;
-    method.next();
-    await timeout(1000);
-    expect(submitSpy).toHaveBeenCalled();
+  it('should ensure that the action FAILURE_FETCH_DATA is dispatched when the api call fails', query => {
+    const method = fetchData(query);
+    const res = method.next().value;
+    expect(res).toEqual(call(fetchBankData, query));
+    expect(method.next(apiResponseGenerator(false)).value).toEqual(
+      put({
+        type: rootScreenTypes.FAILURE_FETCH_DATA,
+        errorMessage: 'IFSC Code wrong or Server not Responding'
+      })
+    );
   });
 
-  it('should ensure that the navigation service is called after waiting for 1000ms', async () => {
-    const method = startup();
-    NavigationService.navigateAndReset = submitSpy;
-    method.next();
-    await timeout(650);
-    expect(submitSpy).not.toHaveBeenCalled();
-    await timeout(200);
-    expect(submitSpy).not.toHaveBeenCalled();
+  it('should ensure that the action SUCCESS_FETCH_DATA is dispatched when the api call succeeds', query => {
+    const method = fetchData(query);
+    const res = method.next().value;
+    expect(res).toEqual(call(fetchBankData, query));
+    const dataResponse = {
+      bank: 'Karnataka Bank',
+      ifsc: 'KARB0000001',
+      branch: 'RTGS-HO',
+      address:
+        'REGD. & HEAD OFFICE, P.B.NO.599, MAHAVEER CIRCLE, KANKANADY, MANGALORE - 575002',
+      contact: '2228222',
+      city: 'DAKSHINA KANNADA',
+      rtgs: true,
+      district: 'MANGALORE',
+      state: 'KARNATAKA'
+    };
+    expect(
+      method.next(apiResponseGenerator(true, [dataResponse])).value
+    ).toEqual(
+      put({ type: rootScreenTypes.SUCCESS_FETCH_DATA, user: dataResponse })
+    );
   });
 });

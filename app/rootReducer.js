@@ -1,11 +1,13 @@
 import { combineReducers } from 'redux';
-import { exampleContainerReducer as example } from '@scenes/ExampleScreen/reducer';
+import { favouritesContainerReducer as favourites } from '@scenes/FavouritesScreen/reducer';
+import { rootContainerReducer as root } from '@scenes/RootScreen/reducer';
 import configureStore from 'app/utils/createStore';
 import rootSaga from 'app/rootSaga';
 
 export default () => {
   const rootReducer = combineReducers({
-    example
+    root,
+    favourites
   });
 
   return configureStore(rootReducer, rootSaga);
